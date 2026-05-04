@@ -181,7 +181,8 @@ function updateRoomPlayersUI() {
             if (name && name !== 'Waiting...') {
                 const div = document.createElement('div');
                 div.className = 'player-entry';
-                div.innerText = `${symbol}: ${name}`;
+                const isYou = symbol === gameState.mySymbol;
+                div.innerText = isYou ? `YOU: ${name}` : `${name} (${symbol})`;
                 list.appendChild(div);
             }
         });

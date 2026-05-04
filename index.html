@@ -97,6 +97,14 @@
                 <div class="wood-panel sidebar-panel">
                     <h3>Players</h3>
                     <div id="room-players-list"></div>
+                    
+                    <h3 style="margin-top: 20px;">Scoreboard</h3>
+                    <div class="sidebar-score">
+                        <div class="score-row"><span>Matches:</span> <strong id="total-matches">0</strong></div>
+                        <div class="score-row"><span id="score-p1-name">P1</span>: <strong id="score-p1-wins">0</strong></div>
+                        <div class="score-row"><span id="score-p2-name">P2</span>: <strong id="score-p2-wins">0</strong></div>
+                        <div class="score-row"><span>Draws:</span> <strong id="score-draws">0</strong></div>
+                    </div>
                 </div>
             </div>
             <div class="game-header">
@@ -110,26 +118,6 @@
                 <div class="player-info p2" id="p2-info">
                     <span class="symbol">O</span>
                     <span class="name" id="p2-name">Player 2</span>
-                </div>
-            </div>
-
-            <div class="wood-panel scoreboard" id="scoreboard">
-                <div class="score-item">
-                    <span class="label">Matches</span>
-                    <span class="value" id="total-matches">0</span>
-                </div>
-                <div class="score-divider"></div>
-                <div class="score-item">
-                    <span class="label" id="score-p1-name">P1</span>
-                    <span class="value" id="score-p1-wins">0</span>
-                </div>
-                <div class="score-item">
-                    <span class="label">Draws</span>
-                    <span class="value" id="score-draws">0</span>
-                </div>
-                <div class="score-item">
-                    <span class="label" id="score-p2-name">P2</span>
-                    <span class="value" id="score-p2-wins">0</span>
                 </div>
             </div>
 
