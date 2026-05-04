@@ -66,6 +66,8 @@ function setMode(mode) {
     gameState.mode = mode;
     if (mode === 'offline') {
         gameState.players = { X: 'Player 1', O: 'Player 2' };
+        gameState.scores['Player 1'] = 0;
+        gameState.scores['Player 2'] = 0;
         startGame();
     } else {
         changeScreen('online-lobby');
@@ -117,8 +119,8 @@ function makeMove(index, symbol) {
     const winnerData = checkWinner(gameState.board);
     if (winnerData) {
         if (gameState.mode === 'offline') {
-            if (winnerData.winner === 'X') gameState.scores.p1Wins++;
-            else gameState.scores.p2Wins++;
+            const winnerName = gameState.players[winnerData.winner];
+            gameState.scores[winnerName] = (gameState.scores[winnerName] || 0) + 1;
             gameState.scores.matches++;
         }
         endGame(winnerData);
@@ -170,10 +172,10 @@ function updateScoreboardUI() {
         if (p2Name) p2Name.innerText = gameState.scores.opponentName ? gameState.scores.opponentName.substring(0, 5) : 'Opp';
         if (oWins) oWins.innerText = gameState.scores.opponentWins || 0;
     } else {
-        if (p1Name) p1Name.innerText = gameState.players.X ? gameState.players.X.substring(0, 5) : 'P1';
-        if (xWins) xWins.innerText = gameState.scores.p1Wins || 0;
-        if (p2Name) p2Name.innerText = gameState.players.O ? gameState.players.O.substring(0, 5) : 'P2';
-        if (oWins) oWins.innerText = gameState.scores.p2Wins || 0;
+        if (p1Name) p1Name.innerText = 'Player 1';
+        if (xWins) xWins.innerText = gameState.scores['Player 1'] || 0;
+        if (p2Name) p2Name.innerText = 'Player 2';
+        if (oWins) oWins.innerText = gameState.scores['Player 2'] || 0;
     }
 }
 
