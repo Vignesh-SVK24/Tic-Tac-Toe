@@ -11,7 +11,8 @@ let gameState = {
     mySymbol: 'X',
     roomCode: '',
     isGameOver: false,
-    winner: null
+    winner: null,
+    scores: { X: 0, O: 0, draws: 0, matches: 0 }
 };
 
 let socket;
@@ -53,7 +54,10 @@ function changeScreen(screenId) {
         lucide.createIcons();
         
         // Post-render logic
-        if (screenId === 'game') updateBoardUI();
+        if (screenId === 'game') {
+            updateBoardUI();
+            updateScoreboardUI();
+        }
     }
 }
 
@@ -87,6 +91,7 @@ function startGame() {
         document.getElementById('p1-name').innerText = 'Player 1';
         document.getElementById('p2-name').innerText = 'Player 2';
     }
+    updateRoomPlayersUI();
 }
 
 function handleCellClick(index) {
@@ -111,8 +116,16 @@ function makeMove(index, symbol) {
     
     const winnerData = checkWinner(gameState.board);
     if (winnerData) {
+        if (gameState.mode === 'offline') {
+            gameState.scores[winnerData.winner]++;
+            gameState.scores.matches++;
+        }
         endGame(winnerData);
     } else if (gameState.board.every(cell => cell !== null)) {
+        if (gameState.mode === 'offline') {
+            gameState.scores.draws++;
+            gameState.scores.matches++;
+        }
         endGame('draw');
     } else {
         gameState.turn = symbol === 'X' ? 'O' : 'X';
@@ -138,6 +151,45 @@ function updateTurnUI() {
     }
 }
 
+function updateScoreboardUI() {
+    const total = document.getElementById('total-matches');
+    const xWins = document.getElementById('score-p1-wins');
+    const oWins = document.getElementById('score-p2-wins');
+    const draws = document.getElementById('score-draws');
+    const p1Name = document.getElementById('score-p1-name');
+    const p2Name = document.getElementById('score-p2-name');
+
+    if (total) total.innerText = gameState.scores.matches;
+    if (xWins) xWins.innerText = gameState.scores.X;
+    if (oWins) oWins.innerText = gameState.scores.O;
+    if (draws) draws.innerText = gameState.scores.draws;
+    
+    if (p1Name) p1Name.innerText = gameState.players.X.substring(0, 5);
+    if (p2Name) p2Name.innerText = gameState.players.O.substring(0, 5);
+}
+
+function updateRoomPlayersUI() {
+    const list = document.getElementById('room-players-list');
+    const sidebar = document.querySelector('.room-sidebar');
+    if (!list) return;
+
+    if (gameState.mode === 'online') {
+        sidebar.style.display = window.innerWidth >= 900 ? 'block' : 'none';
+        list.innerHTML = '';
+        Object.keys(gameState.players).forEach(symbol => {
+            const name = gameState.players[symbol];
+            if (name && name !== 'Waiting...') {
+                const div = document.createElement('div');
+                div.className = 'player-entry';
+                div.innerText = `${symbol}: ${name}`;
+                list.appendChild(div);
+            }
+        });
+    } else {
+        sidebar.style.display = 'none';
+    }
+}
+
 function checkWinner(board) {
     const lines = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
@@ -160,6 +212,11 @@ function endGame(result) {
     if (result !== 'draw') {
         const cells = document.querySelectorAll('.cell');
         result.line.forEach(idx => cells[idx].classList.add('winning-cell'));
+    }
+
+    if (gameState.mode === 'online' && gameState.mySymbol === 'X') {
+        // Only host reports the result to avoid double counting
+        socket.emit('game_ended', { roomCode: gameState.roomCode, result: result });
     }
 
     setTimeout(() => {
@@ -233,6 +290,8 @@ function initSocket() {
         if (gameState.currentScreen === 'game') {
             document.getElementById('p1-name').innerText = gameState.players.X;
             document.getElementById('p2-name').innerText = gameState.players.O;
+            updateRoomPlayersUI();
+            updateScoreboardUI();
         }
     });
 
@@ -258,6 +317,12 @@ function initSocket() {
             });
         }
         startGame();
+    });
+
+    socket.on('score_updated', ({ scores, matches }) => {
+        gameState.scores = scores;
+        gameState.scores.matches = matches;
+        if (gameState.currentScreen === 'game') updateScoreboardUI();
     });
 
     socket.on('opponent_disconnected', () => {

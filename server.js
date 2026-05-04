@@ -29,7 +29,8 @@ io.on('connection', (socket) => {
       players: [{ id: socket.id, name: playerName, symbol: 'X' }],
       board: Array(9).fill(null),
       turn: 'X',
-      messages: []
+      messages: [],
+      scores: { X: 0, O: 0, draws: 0, matches: 0 }
     });
     socket.join(roomCode);
     socket.emit('room_created', { roomCode, symbol: 'X' });
@@ -65,6 +66,19 @@ io.on('connection', (socket) => {
         room.turn = symbol === 'X' ? 'O' : 'X';
         io.to(roomCode).emit('move_made', { index, symbol, nextTurn: room.turn });
       }
+    }
+  });
+
+  socket.on('game_ended', ({ roomCode, result }) => {
+    const room = rooms.get(roomCode);
+    if (room) {
+      room.matches = (room.matches || 0) + 1;
+      if (result === 'draw') {
+        room.scores.draws++;
+      } else {
+        room.scores[result.winner]++;
+      }
+      io.to(roomCode).emit('score_updated', { scores: room.scores, matches: room.matches });
     }
   });
 
