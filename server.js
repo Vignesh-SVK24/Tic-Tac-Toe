@@ -26,11 +26,11 @@ io.on('connection', (socket) => {
   socket.on('create_room', ({ playerName }) => {
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     rooms.set(roomCode, {
-      players: [{ id: socket.id, name: playerName, symbol: 'X' }],
+      players: [{ id: socket.id, name: playerName, symbol: 'X', wins: 0, draws: 0 }],
       board: Array(9).fill(null),
       turn: 'X',
       messages: [],
-      scores: { X: 0, O: 0, draws: 0, matches: 0 }
+      totalMatches: 0
     });
     socket.join(roomCode);
     socket.emit('room_created', { roomCode, symbol: 'X' });
@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
   socket.on('join_room', ({ roomCode, playerName }) => {
     const room = rooms.get(roomCode);
     if (room && room.players.length < 2) {
-      room.players.push({ id: socket.id, name: playerName, symbol: 'O' });
+      room.players.push({ id: socket.id, name: playerName, symbol: 'O', wins: 0, draws: 0 });
       socket.join(roomCode);
       socket.emit('room_joined', { 
         roomCode, 
@@ -71,14 +71,16 @@ io.on('connection', (socket) => {
 
   socket.on('game_ended', ({ roomCode, result }) => {
     const room = rooms.get(roomCode);
-    if (room) {
-      room.matches = (room.matches || 0) + 1;
+    if (room && !room.resultReported) {
+      room.resultReported = true;
+      room.totalMatches = (room.totalMatches || 0) + 1;
       if (result === 'draw') {
-        room.scores.draws++;
+        room.players.forEach(p => p.draws = (p.draws || 0) + 1);
       } else {
-        room.scores[result.winner]++;
+        const winner = room.players.find(p => p.symbol === result.winner);
+        if (winner) winner.wins = (winner.wins || 0) + 1;
       }
-      io.to(roomCode).emit('score_updated', { scores: room.scores, matches: room.matches });
+      io.to(roomCode).emit('score_updated', { players: room.players, totalMatches: room.totalMatches });
     }
   });
 
@@ -110,6 +112,7 @@ io.on('connection', (socket) => {
         });
         room.board = Array(9).fill(null);
         room.turn = 'X';
+        room.resultReported = false;
         io.to(roomCode).emit('game_restarted', { players: room.players });
       }
     }

@@ -12,7 +12,7 @@ let gameState = {
     roomCode: '',
     isGameOver: false,
     winner: null,
-    scores: { X: 0, O: 0, draws: 0, matches: 0 }
+    scores: { matches: 0, draws: 0, myWins: 0, opponentWins: 0, myName: '', opponentName: '', p1Wins: 0, p2Wins: 0 }
 };
 
 let socket;
@@ -117,7 +117,8 @@ function makeMove(index, symbol) {
     const winnerData = checkWinner(gameState.board);
     if (winnerData) {
         if (gameState.mode === 'offline') {
-            gameState.scores[winnerData.winner]++;
+            if (winnerData.winner === 'X') gameState.scores.p1Wins++;
+            else gameState.scores.p2Wins++;
             gameState.scores.matches++;
         }
         endGame(winnerData);
@@ -159,13 +160,21 @@ function updateScoreboardUI() {
     const p1Name = document.getElementById('score-p1-name');
     const p2Name = document.getElementById('score-p2-name');
 
-    if (total) total.innerText = gameState.scores.matches;
-    if (xWins) xWins.innerText = gameState.scores.X;
-    if (oWins) oWins.innerText = gameState.scores.O;
-    if (draws) draws.innerText = gameState.scores.draws;
-    
-    if (p1Name) p1Name.innerText = gameState.players.X.substring(0, 5);
-    if (p2Name) p2Name.innerText = gameState.players.O.substring(0, 5);
+    if (total) total.innerText = gameState.scores.matches || 0;
+    if (draws) draws.innerText = gameState.scores.draws || 0;
+
+    if (gameState.mode === 'online') {
+        if (p1Name) p1Name.innerText = `YOU: ${gameState.scores.myName ? gameState.scores.myName.substring(0, 5) : 'P1'}`;
+        if (xWins) xWins.innerText = gameState.scores.myWins || 0;
+        
+        if (p2Name) p2Name.innerText = gameState.scores.opponentName ? gameState.scores.opponentName.substring(0, 5) : 'Opp';
+        if (oWins) oWins.innerText = gameState.scores.opponentWins || 0;
+    } else {
+        if (p1Name) p1Name.innerText = gameState.players.X ? gameState.players.X.substring(0, 5) : 'P1';
+        if (xWins) xWins.innerText = gameState.scores.p1Wins || 0;
+        if (p2Name) p2Name.innerText = gameState.players.O ? gameState.players.O.substring(0, 5) : 'P2';
+        if (oWins) oWins.innerText = gameState.scores.p2Wins || 0;
+    }
 }
 
 function updateRoomPlayersUI() {
@@ -215,8 +224,8 @@ function endGame(result) {
         result.line.forEach(idx => cells[idx].classList.add('winning-cell'));
     }
 
-    if (gameState.mode === 'online' && gameState.mySymbol === 'X') {
-        // Only host reports the result to avoid double counting
+    if (gameState.mode === 'online') {
+        // Since we prevent double counting on server, we can just emit it
         socket.emit('game_ended', { roomCode: gameState.roomCode, result: result });
     }
 
@@ -320,9 +329,18 @@ function initSocket() {
         startGame();
     });
 
-    socket.on('score_updated', ({ scores, matches }) => {
-        gameState.scores = scores;
-        gameState.scores.matches = matches;
+    socket.on('score_updated', ({ players, totalMatches }) => {
+        gameState.scores.matches = totalMatches;
+        players.forEach(p => {
+            if (p.id === socket.id) {
+                gameState.scores.myWins = p.wins;
+                gameState.scores.draws = p.draws;
+                gameState.scores.myName = p.name;
+            } else {
+                gameState.scores.opponentWins = p.wins;
+                gameState.scores.opponentName = p.name;
+            }
+        });
         if (gameState.currentScreen === 'game') updateScoreboardUI();
     });
 
