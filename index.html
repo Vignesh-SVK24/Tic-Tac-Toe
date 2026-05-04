@@ -1,14 +1,146 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic-Tac-Toe by SVK Creationz</title>
-    <meta name="description" content="A premium, modern Tic-Tac-Toe game with online multiplayer and customizable themes by SVK Creationz." />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- Dust Particles will be added via JS -->
+        
+        <div id="screen-container">
+            <!-- Screens will be injected here -->
+        </div>
+    </div>
+
+    <!-- Templates for different screens -->
+    <template id="tpl-splash">
+        <div class="screen splash-screen">
+            <div class="wood-panel logo-container">
+                <h1 class="engraved">SVK</h1>
+                <p class="engraved-light">Creationz</p>
+            </div>
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-home">
+        <div class="screen home-screen">
+            <header class="home-header">
+                <h1 class="engraved-title">Tic-Tac-Toe</h1>
+                <p class="subtitle">By SVK Creationz</p>
+            </header>
+            <div class="menu-options">
+                <button class="btn btn-primary" onclick="changeScreen('mode-select')">
+                    <i data-lucide="play"></i> Start Game
+                </button>
+                <button class="btn btn-secondary" onclick="changeScreen('settings')">
+                    <i data-lucide="settings"></i> Settings
+                </button>
+                <button class="btn btn-secondary" onclick="window.open('https://github.com/vignesh-svk', '_blank')">
+                    <i data-lucide="github"></i> Developer
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-mode-select">
+        <div class="screen mode-select-screen">
+            <button class="back-btn" onclick="changeScreen('home')"><i data-lucide="arrow-left"></i></button>
+            <h2 class="engraved-light">Choose Mode</h2>
+            <div class="mode-grid">
+                <div class="wood-panel mode-card" onclick="setMode('offline')">
+                    <i data-lucide="users" class="gold-icon"></i>
+                    <h3>Offline Play</h3>
+                    <p>Play with a friend locally</p>
+                </div>
+                <div class="wood-panel mode-card" onclick="setMode('online')">
+                    <i data-lucide="globe" class="gold-icon"></i>
+                    <h3>Global Match</h3>
+                    <p>Play with anyone online</p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-online-lobby">
+        <div class="screen online-lobby-screen">
+            <button class="back-btn" onclick="changeScreen('mode-select')"><i data-lucide="arrow-left"></i></button>
+            <div class="wood-panel lobby-card">
+                <h2 class="engraved-light">Online Multiplayer</h2>
+                <div class="input-group">
+                    <label>Your Name</label>
+                    <input type="text" id="player-name-input" placeholder="Enter name...">
+                </div>
+                <div class="lobby-actions">
+                    <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
+                    <div class="divider"><span>OR</span></div>
+                    <div class="join-group">
+                        <input type="text" id="room-code-input" placeholder="Room Code">
+                        <button class="btn btn-secondary" onclick="joinRoom()">Join</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-game">
+        <div class="screen game-screen">
+            <div class="game-header">
+                <div class="player-info p1 active" id="p1-info">
+                    <span class="symbol">X</span>
+                    <span class="name" id="p1-name">Player 1</span>
+                </div>
+                <div class="room-indicator" id="room-info" style="display:none">
+                    Room: <span id="display-room-code">0000</span>
+                </div>
+                <div class="player-info p2" id="p2-info">
+                    <span class="symbol">O</span>
+                    <span class="name" id="p2-name">Player 2</span>
+                </div>
+            </div>
+
+            <div class="wood-panel board" id="game-board">
+                <div class="cell" data-index="0" onclick="handleCellClick(0)"></div>
+                <div class="cell" data-index="1" onclick="handleCellClick(1)"></div>
+                <div class="cell" data-index="2" onclick="handleCellClick(2)"></div>
+                <div class="cell" data-index="3" onclick="handleCellClick(3)"></div>
+                <div class="cell" data-index="4" onclick="handleCellClick(4)"></div>
+                <div class="cell" data-index="5" onclick="handleCellClick(5)"></div>
+                <div class="cell" data-index="6" onclick="handleCellClick(6)"></div>
+                <div class="cell" data-index="7" onclick="handleCellClick(7)"></div>
+                <div class="cell" data-index="8" onclick="handleCellClick(8)"></div>
+            </div>
+
+            <div class="game-footer">
+                <button class="btn btn-secondary" onclick="confirmQuit()"><i data-lucide="log-out"></i> Quit</button>
+                <div id="chat-container" style="display:none">
+                    <button class="btn btn-secondary" onclick="toggleChat()"><i data-lucide="message-square"></i> Chat</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-results">
+        <div class="screen results-screen">
+            <div class="wood-panel result-card">
+                <h1 id="result-text" class="engraved">Game Over</h1>
+                <p id="result-subtext" class="engraved-light"></p>
+                <div class="result-actions">
+                    <button id="restart-btn" class="btn btn-primary" onclick="restartGame()">Play Again</button>
+                    <button class="btn btn-secondary" onclick="changeScreen('home')">Home</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
 </html>
