@@ -184,8 +184,9 @@ function updateRoomPlayersUI() {
     const sidebar = document.querySelector('.room-sidebar');
     if (!list) return;
 
+    sidebar.style.display = 'block';
+
     if (gameState.mode === 'online') {
-        sidebar.style.display = window.innerWidth >= 900 ? 'block' : 'none';
         list.innerHTML = '';
         Object.keys(gameState.players).forEach(symbol => {
             const name = gameState.players[symbol];
@@ -198,7 +199,13 @@ function updateRoomPlayersUI() {
             }
         });
     } else {
-        sidebar.style.display = 'none';
+        list.innerHTML = '';
+        ['X', 'O'].forEach(symbol => {
+            const div = document.createElement('div');
+            div.className = 'player-entry';
+            div.innerText = `${gameState.players[symbol]} (${symbol})`;
+            list.appendChild(div);
+        });
     }
 }
 

@@ -87,20 +87,36 @@ body {
 }
 
 .room-sidebar {
-    position: absolute;
-    left: -180px;
-    top: 2rem;
-    width: 160px;
-    display: none; /* Hide by default, show for online */
-}
-
-@media (min-width: 900px) {
-    .room-sidebar { display: block; }
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+    display: none; /* Controlled by JS */
 }
 
 .sidebar-panel {
     padding: 15px;
     font-size: 0.9rem;
+}
+
+@media (max-width: 899px) {
+    .sidebar-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    .sidebar-panel h3 {
+        margin-top: 0 !important;
+    }
+}
+
+@media (min-width: 900px) {
+    .room-sidebar {
+        position: absolute;
+        left: -180px;
+        top: 2rem;
+        width: 160px;
+        margin-bottom: 0;
+    }
 }
 
 .sidebar-panel h3 {
